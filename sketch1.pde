@@ -24,8 +24,7 @@ void setup() {
     noLoop();
 }
 
-void CreateGrid()
-{
+void CreateGrid() {
     cells = new Cell[rows * cols];
     
     int index = 0;
@@ -39,16 +38,15 @@ void CreateGrid()
             
             index++;
         }
-}
+    }
 }
 
-void CreateRandomPoints()
-{
+void CreateRandomPoints() {
     rnd = new int[points];
     
     for (int i = 0; i < points; i++) {
         rnd[i] = (int)random(cells.length);
-}
+    }
     
     Arrays.sort(rnd);
     
@@ -63,13 +61,12 @@ void CreateRandomPoints()
     //for( int i = temp; i > 0; i --)
     //{
     //circle(cells[rndFirst + (cols * i)].x, cells[rndFirst + (cols * i)].y, cellSize);
-//}
+    //}
     FindPath(rndFirst, rndLast);
     
 }
 
-void FindPath(int start, int end)
-{
+void FindPath(int start, int end) {
     int startIndex = start;
     int endIndex = end;
     int startEndDelta = end - start; //tracks # of indexes between start and end
@@ -85,7 +82,7 @@ void FindPath(int start, int end)
         System.out.println("steps: " + steps);
         System.out.println("startEndDelta: " + startEndDelta);
         
-        if (startEndDelta > cols) {
+        if (startEndDelta >= cols) {
             switch((int)random(3)) {
                 default:
                 case 0 : //move down from start
