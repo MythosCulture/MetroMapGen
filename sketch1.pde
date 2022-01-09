@@ -41,6 +41,7 @@ void CreateGrid() {
     }
 }
 
+//make array to store "active" cells. Have function that selects from that array and uses it to connect the random points from int[] rnd w/ the find path function
 void CreateRandomPoints() {
     rnd = new int[points];
     
@@ -53,15 +54,9 @@ void CreateRandomPoints() {
     int rndFirst = rnd[0];
     int rndLast = rnd[rnd.length - 1];
     
-    //int temp = (int)(rndLast/cols)-(rndFirst/cols);
-    //int temp2 = ((temp*cols)-(rndFirst/cols))-rndLast;
-    
     noStroke();
     fill(color1);
-    //for( int i = temp; i > 0; i --)
-    //{
-    //circle(cells[rndFirst + (cols * i)].x, cells[rndFirst + (cols * i)].y, cellSize);
-    //}
+
     FindPath(rndFirst, rndLast);
     
 }
@@ -70,6 +65,9 @@ void FindPath(int start, int end) {
     int startIndex = start;
     int endIndex = end;
     int startEndDelta = end - start; //tracks # of indexes between start and end
+    int drawReturn;
+
+    String msg ="";
     
     do{
         //Calculating rows ("steps") allowed to travel for given cycle
@@ -77,114 +75,151 @@ void FindPath(int start, int end) {
         int steps = (int)random((int)calculateSteps + 1);
         boolean endIsLeft = (startIndex % cols > endIndex % cols) ? true : false;
         
+        //Notes//
         System.out.println("endIsLeft: " + endIsLeft);
         System.out.println("calculateSteps: " + calculateSteps);
         System.out.println("steps: " + steps);
         System.out.println("startEndDelta: " + startEndDelta);
-        
+        //end of notes//
+
+        //TODO:
+
         if (startEndDelta >= cols) {
             switch((int)random(3)) {
                 default:
                 case 0 : //move down from start
-                    System.out.println("    SWITCH A: 0, moved " + steps + " rows DOWN from START.");
-                    for (int i = steps; i > 0; i--) {
-                        startEndDelta -= cols;
-                        startIndex += cols;
-                        circle(cells[startIndex].x, cells[startIndex].y, cellSize);
+                    if(steps != 0) {
+                        msg = "    SWITCH A: 0, moved " + steps + " rows DOWN from START.";
+                        drawReturn = drawPath(startIndex, steps, cols, msg);
+
+                        startIndex += drawReturn;
+                        startEndDelta -= drawReturn;
                     }
                     break;
-                case 1 : //move up from end
-                    System.out.println("    SWITCH A: 1, moved " + steps + " rows UP from END.");
-                    for (int i = steps; i > 0; i--) {
-                        startEndDelta -= cols;
-                        endIndex-= cols;
-                        circle(cells[endIndex].x, cells[endIndex].y, cellSize);
+                case 1 : //move left and right //This is broken!!!
+                    int sideSteps;
+                    if (endIsLeft) {
+                        sideSteps = (int)random(startIndex % cols);
+                        msg = "    SWITCH A: 1, moved " + sideSteps + " cells LEFT from START.";
+                        drawReturn = drawPath(startIndex, sideSteps, -1, msg);
+                        System.out.println("        sideSteps:"+startIndex % cols);
+
+                        startIndex += drawReturn;
+                        startEndDelta -= drawReturn;
+                    }
+                    else if (!endIsLeft) {
+                        sideSteps = (int)random(cols-(startIndex % cols));
+                        msg = "    SWITCH A: 1, moved " + sideSteps + " cells RIGHT from START.";
+                        drawReturn = drawPath(startIndex, sideSteps, 1, msg);
+                        System.out.println("        sideSteps:"+(cols-(startIndex % cols)));
+
+                        startIndex += drawReturn;
+                        startEndDelta -= drawReturn;
                     }
                     break;
                 case 2 : //move diagonally or side to side
+                if(steps != 0) {
                     if (endIsLeft) {
-                        System.out.println("    SWITCH A: 2a, moved " + steps + " rows DOWN/LEFT from START.");
-                        for (int i = steps; i > 0; i--) {
-                            //Don't go past the end point & don't move past the borders of the grid
-                            if (startIndex + (cols-1) >= endIndex || startIndex % cols == 0) {
-                            break;
-                            } 
-                        else {
-                                startEndDelta -=cols - 1;
-                                startIndex += cols - 1;
-                                circle(cells[startIndex].x, cells[startIndex].y, cellSize);
-                            }
-                        }
+                        msg = "    SWITCH A: 2a, moved " + steps + " rows DOWN/LEFT from START.";
+                        // for (int i = steps; i > 0; i--) {
+                        //     //Don't go past the end point & don't move past the borders of the grid
+                        //     if (startIndex + (cols-1) >= endIndex || startIndex % cols == 0) {
+                        //     break;
+                        //     } 
+                        // else {
+                        //         startEndDelta -=cols - 1;
+                        //         startIndex += cols - 1;
+                        //     }
+                        // }
+                        drawReturn = drawPath(startIndex, steps, cols-1, msg);
+
+                        startIndex += drawReturn;
+                        startEndDelta -= drawReturn;
                     }
                     else if (!endIsLeft) {
-                        System.out.println("    SWITCH A: 2b, moved " + steps + " rows DOWN/RIGHT from START.");
-                        for (int i = steps; i > 0; i--) {
-                            //Don't go past the end point & don't move past the borders of the grid
-                            if (startIndex + (cols+1) >= endIndex || startIndex % cols == cols-1){
-                                break;
-                            }
-                            else {
-                                startEndDelta -=cols + 1;
-                                startIndex += cols + 1;
-                                circle(cells[startIndex].x, cells[startIndex].y, cellSize);
-                            }
-                        }
+                        msg = "    SWITCH A: 2b, moved " + steps + " rows DOWN/RIGHT from START.";
+                        // for (int i = steps; i > 0; i--) {
+                        //     //Don't go past the end point & don't move past the borders of the grid
+                        //     if (startIndex + (cols+1) >= endIndex || startIndex % cols == cols-1){
+                        //         break;
+                        //     }
+                        //     else {
+                        //         startEndDelta -=cols + 1;
+                        //         startIndex += cols + 1;
+                        //     }
+                        // }
+                        drawReturn = drawPath(startIndex, steps, cols+1, msg);
+
+                        startIndex += drawReturn;
+                        startEndDelta -= drawReturn;
                     }
                 else {
                     System.out.println("    SWITCH A: 2c, met condition OTHER");
                     System.out.println(startEndDelta);
                     startEndDelta = 0;
                 }
+                }
                 break;
             }
         }
         else if (startEndDelta < cols) {
-            if (startEndDelta == cols-1) { ///ADD TO IF STATEMENT!!!!!!!!!!!
+            if (startEndDelta == cols-1) { //Hasn't triggered yet
                 System.out.println("    !!(LEGAL)" + startEndDelta + " DELTA REMAINING. SETTING TO 0.");
                 startEndDelta = 0;
             }
+
             if (endIsLeft) {
-                System.out.println("    SWITCH B: True, moved " + (cols-startEndDelta) + " rows LEFT from START.");
-                for (int i =  cols-startEndDelta; i > 0; i--) { 
-                    //"cols-startEndDelta" bc otherwise it wants to go left all the way to the next line
-                    //Don't move past the borders of the grid
-                    if (i % cols == 0) {
-                        break;
-                    } 
-                    else {
-                        startEndDelta--;
-                        startIndex--;
-                        circle(cells[startIndex].x, cells[startIndex].y, cellSize);
-                    }
-                }
-                if(startEndDelta > 0) {
-                    System.out.println(startEndDelta + " DELTA REMAINING. SETTING TO 0.");
-                    startEndDelta = 0;
-                }
+                msg = "    SWITCH B: True, moved " + (cols-startEndDelta) + " rows LEFT from START.";
+                //"cols-startEndDelta" bc otherwise it wants to go left all the way to the next line
+                drawReturn = drawPath(startIndex, cols-startEndDelta, -1, msg);
+
+                startIndex += drawReturn;
+                startEndDelta -= drawReturn;
             }
             else if (!endIsLeft) {
-                System.out.println("    SWITCH B: False, moved " + startEndDelta + " rows RIGHT from START.");
-                for (int i = startEndDelta; i > 0; i--) { 
-                    //Don't move past the borders of the grid
-                    if (i % cols == cols - 1) {
-                        break;
-                    }
-                    else {
-                        startEndDelta--;
-                        startIndex++;
-                        circle(cells[startIndex].x, cells[startIndex].y, cellSize);
-                    }
-                }
-                if(startEndDelta > 0) {
-                    System.out.println(startEndDelta + " DELTA REMAINING. SETTING TO 0.");
-                    startEndDelta = 0;
-                }
+                msg = "    SWITCH B: False, moved " + startEndDelta + " rows RIGHT from START.";
+                drawReturn = drawPath(startIndex, startEndDelta, 1, msg);
+
+                startIndex += drawReturn;
+                startEndDelta -= drawReturn;
+            }
+
+            if(startEndDelta > 0) { 
+                // !!use to be nested in endIsLeft and !endIsLeft & never got triggered
+                // check whats up if this starts getting triggered
+                System.out.println(startEndDelta + " DELTA REMAINING. SETTING TO 0.");
+                startEndDelta = 0;
             }
         }
         
     } while(startEndDelta > 0);
     
-    
+}
+
+int drawPath( int index, int loopCounter, int incrNum, String message) {
+    int indexStart = index;
+    int indexEnd;
+
+    System.out.println(message); //for debugging
+
+    for(int i = loopCounter; i > 0; i--) {
+        if (i % cols == 0 || i % cols == cols-1) //Don't move off grid left || Don't move off grid right
+        {
+            break;
+        }
+        index += incrNum;
+        cells[index].isActive = true;
+    }
+
+    indexEnd = index;
+
+    stroke(color1);
+    strokeWeight(cellSize*1.5);
+    line(cells[indexStart].x, cells[indexStart].y, cells[indexEnd].x, cells[indexEnd].y);
+    noStroke();
+
+    int returnIndex = Math.abs(indexStart - indexEnd);
+    return returnIndex;
 }
 
 //Log passes of each metro line based on some variable (randomly gen int to decide how many lines)
@@ -204,18 +239,20 @@ void draw() {
     //Test for filling grid w/ circles//
     //for (Cell item : cells) {
     //circle(item.x, item.y, cellSize);
-//}
+    //}
     System.out.println("ROWS: " + rows + "; COLUMNS: " + cols);
     System.out.println(Arrays.toString(rnd));
     System.out.println(cells[rnd[0]].x + " " + cells[rnd[0]].y + "; INDEX: " + rnd[0]);
     System.out.println(cells[rnd[rnd.length - 1]].x + " " + cells[rnd[rnd.length - 1]].y + "; INDEX: " + rnd[rnd.length - 1]);
     
+    //connect two last rnd points
     stroke(0, 0, 0);
+    strokeWeight(1);
     line(cells[rnd[0]].x, cells[rnd[0]].y, cells[rnd[rnd.length - 1]].x, cells[rnd[rnd.length - 1]].y);
     
+    //draw rnd points
     noStroke();
     fill(color1);
-    
     for (int item : rnd) {
         circle(cells[item].x, cells[item].y, cellSize);
     }
@@ -225,6 +262,7 @@ void draw() {
 class Cell {
     //Add variables to cells as needed...
     float x, y; //center of cell
+    boolean isActive = false; //active = part of a line
     
     Cell(float x, float y) {
         this.x = x;
