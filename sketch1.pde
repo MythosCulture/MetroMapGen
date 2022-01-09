@@ -67,11 +67,14 @@ void FindPath(int start, int end) {
     int startEndDelta = end - start; //tracks # of indexes between start and end
     int drawReturn;
 
+    String lastAction = "none"; //prevents repeating steps
+
     String msg ="";
     
     do{
         //Calculating rows ("steps") allowed to travel for given cycle
         double calculateSteps = (double)(startEndDelta) / cols;
+        //double calculateSteps = ((double)(startEndDelta) / cols > rows/2) ? ((double)(startEndDelta) / cols)/2 : (double)(startEndDelta) / cols;
         int steps = (int)random((int)calculateSteps + 1);
         boolean endIsLeft = (startIndex % cols > endIndex % cols) ? true : false;
         
@@ -80,75 +83,75 @@ void FindPath(int start, int end) {
         System.out.println("calculateSteps: " + calculateSteps);
         System.out.println("steps: " + steps);
         System.out.println("startEndDelta: " + startEndDelta);
+        System.out.println("startIndex:"+ startIndex);
         //end of notes//
 
-        //TODO:
+        //TODO: Find way to prevent steps from picking consistently high/low numbers
+        //and if the number of total steps allowed is low, force it to use all of them
+        //this needs to scale, since the grid can technically be any size. Hard coding a "5" won't work for example
+        //Potential solution: Make inital calculatedSteps a variable then use that to create percentages to guide selection of steps
 
-        if (startEndDelta >= cols) {
+        if (startEndDelta >= cols && steps != 0) {
             switch((int)random(3)) {
                 default:
                 case 0 : //move down from start
-                    if(steps != 0) {
-                        msg = "    SWITCH A: 0, moved " + steps + " rows DOWN from START.";
-                        drawReturn = drawPath(startIndex, steps, cols, msg);
-
-                        startIndex += drawReturn;
-                        startEndDelta -= drawReturn;
+                    if (lastAction == "down") {
+                        break;
                     }
+                    msg = "    SWITCH A: 0, moved " + steps + " rows DOWN from START.";
+                    drawReturn = drawPath(startIndex, steps, cols, endIsLeft, msg);
+
+                    startIndex += drawReturn;
+                    startEndDelta -= drawReturn;
+                    lastAction = "down";
                     break;
                 case 1 : //move left and right //This is broken!!!
+                    if (lastAction == "side") {
+                        break;
+                    }
+                    int sideStepDelta = startEndDelta % cols; //total steps allowed to move left or right
+                    int sideStepsToEdge = startIndex % cols;
                     int sideSteps;
                     if (endIsLeft) {
-                        sideSteps = (int)random(startIndex % cols);
+                        sideSteps = (sideStepsToEdge < sideStepDelta) ? (int)random(sideStepsToEdge) : (int)random(sideStepDelta);
                         msg = "    SWITCH A: 1, moved " + sideSteps + " cells LEFT from START.";
-                        drawReturn = drawPath(startIndex, sideSteps, -1, msg);
-                        System.out.println("        sideSteps:"+startIndex % cols);
+                        drawReturn = drawPath(startIndex, sideSteps, -1, endIsLeft, msg);
+                        System.out.println("        CALC:"+ startIndex % cols);
+                        System.out.println("        sideSteps:"+ sideSteps);
 
-                        startIndex += drawReturn;
-                        startEndDelta -= drawReturn;
+                        startIndex -= drawReturn; //neg bc moving left
+                        startEndDelta += drawReturn;
                     }
                     else if (!endIsLeft) {
-                        sideSteps = (int)random(cols-(startIndex % cols));
+                        sideSteps = (cols-sideStepsToEdge < sideStepDelta) ? (int)random(cols-sideStepsToEdge) : (int)random(sideStepDelta);
                         msg = "    SWITCH A: 1, moved " + sideSteps + " cells RIGHT from START.";
-                        drawReturn = drawPath(startIndex, sideSteps, 1, msg);
-                        System.out.println("        sideSteps:"+(cols-(startIndex % cols)));
+                        drawReturn = drawPath(startIndex, sideSteps, 1, endIsLeft, msg);
+                        System.out.println("        CALC:"+ (cols-(startIndex % cols)));
+                        System.out.println("        sideSteps:"+ sideSteps);
 
                         startIndex += drawReturn;
                         startEndDelta -= drawReturn;
                     }
+                    lastAction = "side";
                     break;
                 case 2 : //move diagonally or side to side
-                if(steps != 0) {
+                    if(lastAction == "diagonal") {
+                        break;
+                    }
                     if (endIsLeft) {
                         msg = "    SWITCH A: 2a, moved " + steps + " rows DOWN/LEFT from START.";
-                        // for (int i = steps; i > 0; i--) {
                         //     //Don't go past the end point & don't move past the borders of the grid
                         //     if (startIndex + (cols-1) >= endIndex || startIndex % cols == 0) {
-                        //     break;
-                        //     } 
-                        // else {
-                        //         startEndDelta -=cols - 1;
-                        //         startIndex += cols - 1;
-                        //     }
-                        // }
-                        drawReturn = drawPath(startIndex, steps, cols-1, msg);
+                        drawReturn = drawPath(startIndex, steps, cols-1, endIsLeft, msg);
 
                         startIndex += drawReturn;
                         startEndDelta -= drawReturn;
                     }
                     else if (!endIsLeft) {
                         msg = "    SWITCH A: 2b, moved " + steps + " rows DOWN/RIGHT from START.";
-                        // for (int i = steps; i > 0; i--) {
                         //     //Don't go past the end point & don't move past the borders of the grid
                         //     if (startIndex + (cols+1) >= endIndex || startIndex % cols == cols-1){
-                        //         break;
-                        //     }
-                        //     else {
-                        //         startEndDelta -=cols + 1;
-                        //         startIndex += cols + 1;
-                        //     }
-                        // }
-                        drawReturn = drawPath(startIndex, steps, cols+1, msg);
+                        drawReturn = drawPath(startIndex, steps, cols+1, endIsLeft, msg);
 
                         startIndex += drawReturn;
                         startEndDelta -= drawReturn;
@@ -158,7 +161,7 @@ void FindPath(int start, int end) {
                     System.out.println(startEndDelta);
                     startEndDelta = 0;
                 }
-                }
+                lastAction = "diagonal";
                 break;
             }
         }
@@ -169,16 +172,17 @@ void FindPath(int start, int end) {
             }
 
             if (endIsLeft) {
-                msg = "    SWITCH B: True, moved " + (cols-startEndDelta) + " rows LEFT from START.";
                 //"cols-startEndDelta" bc otherwise it wants to go left all the way to the next line
-                drawReturn = drawPath(startIndex, cols-startEndDelta, -1, msg);
+                //drawReturn = drawPath(startIndex, cols-startEndDelta, -1, endIsLeft, msg);
+                msg = "    SWITCH B: True, moved " + startEndDelta + " rows LEFT from START.";
+                drawReturn = drawPath(startIndex, startEndDelta, -1, endIsLeft, msg);
 
-                startIndex += drawReturn;
-                startEndDelta -= drawReturn;
+                startIndex -= drawReturn; //neg bc moving left
+                startEndDelta += drawReturn;
             }
             else if (!endIsLeft) {
                 msg = "    SWITCH B: False, moved " + startEndDelta + " rows RIGHT from START.";
-                drawReturn = drawPath(startIndex, startEndDelta, 1, msg);
+                drawReturn = drawPath(startIndex, startEndDelta, 1, endIsLeft, msg);
 
                 startIndex += drawReturn;
                 startEndDelta -= drawReturn;
@@ -196,19 +200,22 @@ void FindPath(int start, int end) {
     
 }
 
-int drawPath( int index, int loopCounter, int incrNum, String message) {
+int drawPath( int index, int loopCounter, int incrNum, boolean endIsLeft ,String message) {
     int indexStart = index;
     int indexEnd;
 
     System.out.println(message); //for debugging
 
     for(int i = loopCounter; i > 0; i--) {
-        if (i % cols == 0 || i % cols == cols-1) //Don't move off grid left || Don't move off grid right
-        {
-            break;
-        }
         index += incrNum;
         cells[index].isActive = true;
+
+        if (endIsLeft && i % cols == 0) { //Don't move off grid left
+            break;
+        }
+        else if (!endIsLeft && i % cols == cols-1) { //Don't move off grid right
+            break;
+        }
     }
 
     indexEnd = index;
