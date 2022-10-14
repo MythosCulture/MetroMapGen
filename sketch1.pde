@@ -6,7 +6,7 @@ int rows, cols, points;
 int[] rnd;
 float cellSize;
 color color1 = #BF573F;
-
+color color2 = #c89fc1;
 
 void setup() {
     size(700, 700);
@@ -18,8 +18,22 @@ void setup() {
     
     points = 10;
     
-    CreateGrid();
-    CreateRandomPoints();
+    CreateGrid();    
+
+    int testLength = cols>rows?cols:rows;
+    
+    
+
+    Cell randomCell1 = cells[(int)random(cells.length)];
+    MetroLine testLine = new MetroLine(color1, testLength, randomCell1);
+    testLine.generate();
+
+    System.out.println("Starting Cell Index: " + randomCell1.gridIndex); //delete later
+    System.out.println("Starting Cell X,Y: " + randomCell1.x +", " + randomCell1.y); //delete later
+
+    Cell randomCell2 = cells[(int)random(cells.length)];
+    MetroLine testLine2 = new MetroLine(color2, testLength, randomCell2);
+    testLine2.generate();
     
     noLoop();
 }
@@ -34,282 +48,12 @@ void CreateGrid() {
             float centerX = c * cellSize;
             float centerY = r * cellSize;
             
-            cells[index] = new Cell(centerX,centerY);
+            cells[index] = new Cell(centerX,centerY,index);
             
             index++;
         }
     }
 }
-
-//make array to store "active" cells. Have function that selects from that array and uses it to connect the random points from int[] rnd w/ the find path function
-void CreateRandomPoints() {
-    rnd = new int[points];
-    
-    for (int i = 0; i < points; i++) {
-        rnd[i] = (int)random(cells.length);
-    }
-    
-    Arrays.sort(rnd);
-    
-    int rndFirst = rnd[0];
-    int rndLast = rnd[rnd.length - 1];
-    
-    noStroke();
-    fill(color1);
-
-    FindPath(rndFirst, rndLast);
-    
-}
-
-void FindPath(int start, int end) {
-    int startIndex = start;
-    int endIndex = end;
-    int startEndDelta = end - start; //tracks # of indexes between start and end
-    int drawReturn;
-
-    List<String> list = new ArrayList<String>();
-
-    //Up, down, down/left, down/right, up/left, up/right, left, right
-    // up = x <= -cols
-    // down = x >= cols
-    // down/left = x >= cols-1
-    // down/right = x >= cols+1
-    // up/left = x <= -cols+1
-    // up/right = x <= -cols-1
-    // left = no restrictions except when single digits: if x > -cols && x < 0 //not quite right
-
-    do{
-        int rndMove = (int)random(8);
-        int sideStepsToEdge = startIndex % cols; // 0 through cols-1
-
-        switch(rndMove){
-            default:
-            case 0: //Up
-                if (startEndDelta <= cols*-1){
-                    list.add("Up");
-                    startIndex -= cols;
-                    startEndDelta += cols;
-                }
-                break;
-            case 1: //Down
-                if (startEndDelta >= cols){
-                    list.add("Down");
-                    startIndex += cols;
-                    startEndDelta -= cols;
-                }
-                break;
-            case 2: //Down/left
-                if (startEndDelta >= cols-1){
-                    list.add("Down/left");
-                    startIndex += cols-1;
-                    startEndDelta -= cols-1;                    
-                }
-                break;
-            case 3: //Down/right
-                if (startEndDelta >= cols+1){
-                    list.add("Down/right");
-                    startIndex += cols+1;
-                    startEndDelta -= cols+1;                        
-                }
-                break;
-            case 4: //Up/left
-                if (startEndDelta <= (cols*-1)+1){
-                    list.add("Up/left");
-                    startIndex -= cols-1;
-                    startEndDelta += cols-1;
-                }
-                break;
-            case 5: //Up/right
-                if (startEndDelta <= (cols*-1)-1){
-                    list.add("Up/right");
-                    startIndex -= cols+1;
-                    startEndDelta += cols+1;
-                }
-                break;
-            case 6: //Left
-                if (startEndDelta > cols*-1 && startEndDelta < 0){}
-                if (startEndDelta > cols){/* Greater than columns, allow movement within edge*/
-                    //use sideStepsToEdge
-                }
-                break;
-            case 6: //Right
-                if (startEndDelta < cols && startEndDelta > 0){}
-                if (startEndDelta > cols){/* Greater than columns, allow movement within edge*/
-                    //use sideStepsToEdge
-                }
-                break;
-        }
-
-    }while(startEndDelta != 0)
-
-
-    String lastAction = "none"; //prevents repeating steps
-
-    String msg ="";
-    
-    do{
-        //Calculating rows ("steps") allowed to travel for given cycle
-        double calculateSteps = (double)(startEndDelta) / cols;
-        //double calculateSteps = ((double)(startEndDelta) / cols > rows/2) ? ((double)(startEndDelta) / cols)/2 : (double)(startEndDelta) / cols;
-        int steps = (int)random((int)calculateSteps + 1);
-        boolean endIsLeft = (startIndex % cols > endIndex % cols) ? true : false;
-        int rndMove = (int)random(3);
-        
-        //Notes//
-        System.out.println("-----START OF TURN-----");
-        System.out.println("endIsLeft:\t\t" + endIsLeft);
-        System.out.println("calculateSteps:\t\t" + calculateSteps);
-        System.out.println("steps:\t\t\t" + steps);
-        System.out.println("startEndDelta:\t\t" + startEndDelta);
-        System.out.println("startIndex:\t\t"+ startIndex);
-        //end of notes//
-
-        //TODO: Find way to prevent steps from picking consistently high/low numbers
-        //and if the number of total steps allowed is low, force it to use all of them
-        //this needs to scale, since the grid can technically be any size. Hard coding a "5" won't work for example
-        //Potential solution: Make inital calculatedSteps a variable then use that to create percentages to guide selection of steps
-
-        if (startEndDelta >= cols && steps != 0) {
-            switch(rndMove) {
-                default:
-                case 0 : //move down from start
-                    if (lastAction == "down") {
-                        break;
-                    }
-                    msg = "    SWITCH A: 0, moved " + steps + " rows DOWN from START.";
-                    drawReturn = drawPath(startIndex, steps, cols, endIsLeft, msg);
-
-                    startIndex += drawReturn;
-                    startEndDelta -= drawReturn;
-                    lastAction = "down";
-                    break;
-                case 1 : //move left and right
-                    if (lastAction == "side") {
-                        break;
-                    }
-                    int sideStepDelta = startEndDelta % cols; //total steps allowed to move left or right
-                    int sideStepsToEdge = startIndex % cols;
-                    int sideSteps;
-                    if (endIsLeft) {
-                        sideSteps = (sideStepsToEdge < sideStepDelta) ? (int)random(sideStepsToEdge) : (int)random(sideStepDelta);
-                        msg = "    SWITCH A: 1, moved " + sideSteps + " cells LEFT from START.";
-                        drawReturn = drawPath(startIndex, sideSteps, -1, endIsLeft, msg);
-                        System.out.println("        CALC:"+ startIndex % cols);
-                        System.out.println("        sideSteps:"+ sideSteps);
-
-                        startIndex -= drawReturn; //neg bc moving left
-                        startEndDelta += drawReturn;
-                    }
-                    else if (!endIsLeft) {
-                        sideSteps = (cols-sideStepsToEdge < sideStepDelta) ? (int)random(cols-sideStepsToEdge) : (int)random(sideStepDelta);
-                        msg = "    SWITCH A: 1, moved " + sideSteps + " cells RIGHT from START.";
-                        drawReturn = drawPath(startIndex, sideSteps, 1, endIsLeft, msg);
-                        System.out.println("        CALC:"+ (cols-(startIndex % cols)));
-                        System.out.println("        sideSteps:"+ sideSteps);
-
-                        startIndex += drawReturn;
-                        startEndDelta -= drawReturn;
-                    }
-                    lastAction = "side";
-                    break;
-                case 2 : //move diagonally or side to side
-                    if(lastAction == "diagonal") {
-                        break;
-                    }
-                    if (endIsLeft) {
-                        msg = "    SWITCH A: 2a, moved " + steps + " rows DOWN/LEFT from START.";
-                        //     //Don't go past the end point & don't move past the borders of the grid
-                        //     if (startIndex + (cols-1) >= endIndex || startIndex % cols == 0) {
-                        drawReturn = drawPath(startIndex, steps, cols-1, endIsLeft, msg);
-
-                        startIndex += drawReturn;
-                        startEndDelta -= drawReturn;
-                    }
-                    else if (!endIsLeft) {
-                        msg = "    SWITCH A: 2b, moved " + steps + " rows DOWN/RIGHT from START.";
-                        //     //Don't go past the end point & don't move past the borders of the grid
-                        //     if (startIndex + (cols+1) >= endIndex || startIndex % cols == cols-1){
-                        drawReturn = drawPath(startIndex, steps, cols+1, endIsLeft, msg);
-
-                        startIndex += drawReturn;
-                        startEndDelta -= drawReturn;
-                    }
-                else {
-                    System.out.println("    SWITCH A: 2c, met condition OTHER");
-                    System.out.println(startEndDelta);
-                    startEndDelta = 0;
-                }
-                lastAction = "diagonal";
-                break;
-            }
-        }
-        else if (startEndDelta < cols) {
-            //if (startEndDelta == cols-1) { //Hasn't triggered yet
-            //    System.out.println("    !!(LEGAL)" + startEndDelta + " DELTA REMAINING. SETTING TO 0.");
-            //    startEndDelta = 0;
-            //}
-
-            if (endIsLeft) {
-                //"cols-startEndDelta" bc otherwise it wants to go left all the way to the next line up
-                //start index is one line too far up from end index
-                msg = "    SWITCH B: True, moved " +  (cols-startEndDelta) + " rows LEFT from START.";
-                drawReturn = drawPath(startIndex,  cols-startEndDelta, -1, endIsLeft, msg);
-
-                startIndex -= drawReturn; //neg bc moving left
-                startEndDelta += drawReturn;
-            }
-            else if (!endIsLeft) {
-                msg = "    SWITCH B: False, moved " + startEndDelta + " rows RIGHT from START.";
-                drawReturn = drawPath(startIndex, startEndDelta, 1, endIsLeft, msg);
-
-                startIndex += drawReturn;
-                startEndDelta -= drawReturn;
-            }
-
-            //if(startEndDelta > 0) { //Has been triggered when startEndDelta is negative before
-                // check whats up if this starts getting triggered
-                //System.out.println(startEndDelta + " DELTA REMAINING. SETTING TO 0.");
-                //startEndDelta = 0;
-            //}
-        }
-        System.out.println("end startEndDelta:\t" + startEndDelta);
-        System.out.println("----END OF TURN-----");
-    } while(startEndDelta != 0);
-    
-}
-
-int drawPath( int index, int loopCounter, int incrNum, boolean endIsLeft ,String message) {
-    int indexStart = index;
-    int indexEnd;
-
-    System.out.println(message); //for debugging
-
-    for(int i = loopCounter; i > 0; i--) {
-        index += incrNum;
-        cells[index].isActive = true;
-
-        //only works for increments of 1
-        if (endIsLeft && index % cols == 0) { //Don't move off grid left
-            System.out.println("\t\t!!Tried to move off grid LEFT!!");
-            break;
-        }
-        else if (!endIsLeft && index % cols == cols-1) { //Don't move off grid right
-            System.out.println("\t\t!!Tried to move off grid RIGHT!!");
-            break;
-        }
-    }
-
-    indexEnd = index;
-
-    stroke(color1);
-    strokeWeight(cellSize*1.5);
-    line(cells[indexStart].x, cells[indexStart].y, cells[indexEnd].x, cells[indexEnd].y);
-    noStroke();
-
-    int returnIndex = Math.abs(indexStart - indexEnd);
-    return returnIndex;
-}
-
 //Log passes of each metro line based on some variable (randomly gen int to decide how many lines)
 //Each pass generates points on a grid. 
 //-Each point will connect to another point to form part of the line
@@ -329,32 +73,291 @@ void draw() {
     //circle(item.x, item.y, cellSize);
     //}
     System.out.println("ROWS: " + rows + "; COLUMNS: " + cols);
-    System.out.println(Arrays.toString(rnd));
-    System.out.println(cells[rnd[0]].x + " " + cells[rnd[0]].y + "; INDEX: " + rnd[0]);
-    System.out.println(cells[rnd[rnd.length - 1]].x + " " + cells[rnd[rnd.length - 1]].y + "; INDEX: " + rnd[rnd.length - 1]);
-    
-    //connect two last rnd points
+
     stroke(0, 0, 0);
     strokeWeight(1);
-    line(cells[rnd[0]].x, cells[rnd[0]].y, cells[rnd[rnd.length - 1]].x, cells[rnd[rnd.length - 1]].y);
-    
-    //draw rnd points
-    noStroke();
-    fill(color1);
-    for (int item : rnd) {
-        circle(cells[item].x, cells[item].y, cellSize);
-    }
-    
 }
 
 class Cell {
     //Add variables to cells as needed...
+    int gridIndex;
     float x, y; //center of cell
     boolean isActive = false; //active = part of a line
+    boolean isTopBorder, isBottomBorder, isLeftBorder, isRightBorder = false;
     
-    Cell(float x, float y) {
+    Cell(float x, float y, int gridIndex) {
         this.x = x;
         this.y = y;
+        this.gridIndex = gridIndex;
+
+        if(gridIndex >= 0 && gridIndex <= cols - 1) this.isTopBorder = true;
+        if(gridIndex <= cells.length - 1 && gridIndex >= cells.length - cols) this.isBottomBorder = true;
+
+        if(gridIndex % cols == 0) this.isLeftBorder = true;
+        if(gridIndex % cols == 1) this.isRightBorder = true;
+
     }
     
+}
+
+class MetroLine {
+    color lineColor;
+    int numOfStops, lineLength;
+    Cell startCell;
+    List<Cell> activeCells;
+
+    MetroLine(color lineColor, int lineLength, Cell startCell) {
+        this.lineColor = lineColor;
+        this.lineLength = lineLength;
+        this.startCell = startCell;
+
+        activeCells = new ArrayList<Cell>();
+
+        System.out.println("Metro Line created"); //delete later
+        System.out.println("Color: " + this.lineColor + "; lineLength: " + this.lineLength + "; Cell starting index: " + this.startCell.gridIndex); //delete later
+    }
+
+    void generate() {
+
+        int[] segmentLengths = new int[] {10, 5, 15, 5};
+        Cell start = startCell;
+        Cell end = startCell;
+        Cell currentCell = startCell;
+        String prevDirection = "none";
+
+        System.out.println("Segment array " + Arrays.toString(segmentLengths) +"\n"); //delete later
+        for(int i = 0; i < segmentLengths.length; i++) {
+            System.out.println("\nMetro Line segment generation... iteration " + i); //delete later
+
+            start = currentCell; //start of current metro line portion
+            System.out.println("    start cell: " + start.gridIndex); //delete later
+            System.out.println("    segmentLength: " + segmentLengths[i]); //delete later
+
+            String direction = randomDirection(getDirections(currentCell, prevDirection));
+            prevDirection = direction;
+            System.out.println("        Starting direction: " + direction); //delete later
+
+            //Somehow able to push out of bounds of the index...
+            for(int j = 0; j < segmentLengths[i]; j++) {
+
+                Cell adjacentCell = getAdjacentCell(currentCell, direction);
+                
+
+                if(currentCell == adjacentCell) {
+                    //If it hits a border, change direction and continue
+                    end = currentCell;
+                    System.out.println("        hit border, end cell: " + end.gridIndex); //delete later
+                    drawLine(start, end);
+                    start = currentCell;
+
+                    direction = randomDirection(getDirections(currentCell, prevDirection));
+                    System.out.println("    Changing Direction to: " + direction); //delete later
+                } else {
+                    currentCell = adjacentCell;
+                    end = currentCell;
+
+                    currentCell.isActive = true;
+                    activeCells.add(currentCell);
+                }
+            }
+            System.out.println("    Start cell: " + start.gridIndex + " End cell: " + end.gridIndex); //delete later
+            drawLine(start, end);
+        }
+    }
+
+    private void drawLine(Cell start, Cell end) {
+        stroke(lineColor);
+        strokeWeight(cellSize * 1.5);
+        line(start.x, start.y, end.x, end.y);
+        noStroke();
+    }
+
+    private String randomDirection (List<String> directions) {
+        if(directions.size() == 0) { //temporary
+            directions.add("up");
+            directions.add("down");
+            directions.add("left");
+            directions.add("right");
+            directions.add("upleft");
+            directions.add("upright");
+            directions.add("downleft");
+            directions.add("downright");
+            System.out.println("Directions list empty, refilled contents.");
+        }
+
+        String message = "  DIRECTIONS LIST: "; //delete later
+        for(String item: directions){ //delete later
+            message += item + " ";
+        }
+        System.out.println(message); //delete later
+
+        return directions.get((int)random(directions.size()));
+    }
+
+    private List<String> getDirections(Cell cell, String prevDirection) {
+        //If it hits an corner from a diagonal direction, it'll have no options...
+        List<String> directions = new ArrayList<>();
+        directions.add("up");
+        directions.add("down");
+        directions.add("left");
+        directions.add("right");
+        directions.add("upleft");
+        directions.add("upright");
+        directions.add("downleft");
+        directions.add("downright");
+
+
+        if(cell.isLeftBorder){
+            directions.remove("left");
+            directions.remove("upleft");
+            directions.remove("downleft");
+        }
+        if(cell.isRightBorder){
+            directions.remove("right");
+            directions.remove("upright");
+            directions.remove("downright");
+        }
+        if(cell.isBottomBorder) {
+            directions.remove("down");
+            directions.remove("downleft");
+            directions.remove("downright");
+        }
+        if(cell.isTopBorder) {
+            directions.remove("up");
+            directions.remove("upleft");
+            directions.remove("upright");
+        }
+
+        //Don't pick previous direction & don't pick the direction it came from (so it doesn't cross over itself)
+        if(prevDirection == "left" || prevDirection == "right") {
+            directions.remove("left");
+            directions.remove("right");
+
+            if(prevDirection == "left") {
+                directions.remove("upright");
+                directions.remove("downright");
+            }
+            if(prevDirection == "right") {
+                directions.remove("upleft");
+                directions.remove("downleft");
+            }
+        }
+        if(prevDirection == "up" || prevDirection == "down") {
+            directions.remove("up");
+            directions.remove("down");
+
+            if(prevDirection == "up") {
+                directions.remove("downleft");
+                directions.remove("downright");
+            }
+            if(prevDirection == "down") {
+                directions.remove("upleft");
+                directions.remove("upright");
+            }
+        }
+        if(prevDirection == "upright" || prevDirection == "downleft") {
+            directions.remove("upright");
+            directions.remove("downleft");
+
+            if(prevDirection == "upright") {
+                directions.remove("down");
+                directions.remove("left");
+            }
+            if(prevDirection == "downleft") {
+                directions.remove("up");
+                directions.remove("right");
+            }
+        }
+        if(prevDirection == "upleft" || prevDirection == "downright") {
+            directions.remove("upleft");
+            directions.remove("downright");
+
+            if(prevDirection == "upleft") {
+                directions.remove("down");
+                directions.remove("right");
+            }
+            if(prevDirection == "downright") {
+                directions.remove("up");
+                directions.remove("left");
+            }
+        }
+
+        return directions;
+    }
+
+    private Cell getAdjacentCell(Cell cell, String dir) {
+        String errorMsg = "...Can't get adjecent cell: ";
+        Cell result = cell;
+
+        if(dir == "up") {
+            errorMsg += "up of " + cell.gridIndex;
+            if(!cell.isTopBorder) {
+                return cells[cell.gridIndex - cols];
+            } else{
+                System.out.println(errorMsg);
+            }
+        }
+        if(dir == "down") {
+            errorMsg += "down of " + cell.gridIndex;
+            if(!cell.isBottomBorder) {
+                return cells[cell.gridIndex + cols];
+            } else{
+                System.out.println(errorMsg);
+            }
+        }
+        if(dir == "left") {
+            errorMsg += "left of " + cell.gridIndex;
+            if(!cell.isLeftBorder) {
+                return cells[cell.gridIndex - 1];
+            } else{
+                System.out.println(errorMsg);
+            }
+        }
+        if(dir == "right") {
+            errorMsg += "right of " + cell.gridIndex;
+            if(!cell.isRightBorder) {
+                return cells[cell.gridIndex + 1];
+            } else{
+                System.out.println(errorMsg);
+            }
+        }
+
+        //Diagonals
+        if(dir == "upleft") {
+            errorMsg += "upleft of " + cell.gridIndex;
+            if(!cell.isTopBorder && !cell.isLeftBorder) {
+                return cells[cell.gridIndex - cols - 1];
+            } else{
+                System.out.println(errorMsg);
+            }
+        }
+        if(dir == "upright") {
+            errorMsg += "upright of " + cell.gridIndex;
+            if(!cell.isTopBorder && !cell.isRightBorder) {
+                return cells[cell.gridIndex - cols + 1];
+            } else{
+                System.out.println(errorMsg);
+            }
+        }
+        if(dir == "downleft") {
+            errorMsg += "downleft of " + cell.gridIndex;
+            if(!cell.isBottomBorder && !cell.isLeftBorder) {
+                return cells[cell.gridIndex + cols - 1];
+            } else{
+                System.out.println(errorMsg);
+            }
+        }
+        if(dir == "downright") {
+            errorMsg += "downright of " + cell.gridIndex;
+            if(!cell.isBottomBorder && !cell.isRightBorder) {
+                return cells[cell.gridIndex + cols + 1];
+            } else{
+                System.out.println(errorMsg);
+            }
+        }
+
+        //System.out.println("Error in getAdjacentCell, returned original cell");
+        return cell;
+
+    }
 }
